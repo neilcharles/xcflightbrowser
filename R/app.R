@@ -1,6 +1,7 @@
 library(shiny)
 library(bslib)
 library(waiter)
+library(sf) #loading prevents a weird clash with dplyr
 
 run_app <- function(...) {
   ui <- page_sidebar(
@@ -13,7 +14,7 @@ run_app <- function(...) {
 
     title = "XC Flight Browser",
 
-    sidebar = sidebar(flightsMapFiltersUI("mainMap"), position = "right", open = TRUE),
+    sidebar = sidebar(flightsMapFiltersUI("mainMap"), position = "right", open = TRUE, width = 350),
 
     flightsMapUI("mainMap")
   )

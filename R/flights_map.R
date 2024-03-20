@@ -14,7 +14,10 @@ flightsMapFiltersUI <- function(id) {
   ns <- shiny::NS(id)
 
   shiny::tagList(
-    shiny::uiOutput(ns("select_dates")),
+    column(10,
+    shiny::uiOutput(ns("select_dates"))
+    ),
+    shiny::uiOutput(ns("select_distance")),
     shiny::uiOutput(ns("select_site")),
     shiny::uiOutput(ns("select_en")),
     shiny::uiOutput(ns("select_pilot")),
@@ -38,12 +41,17 @@ flightsMapServer <- function(id) {
 
       req(input$ui_select_dates)
 
-      flights_filtered <- flights_sf
+      flights_filtered <- flights_sf |>
+        dplyr::filter(!is.na(distance_via_turnpoints))
 
       # Date range
       flights_filtered <- flights_filtered |>
         dplyr::filter(flight_date >= as.character(input$ui_select_dates[1]),
                       flight_date <= as.character(input$ui_select_dates[2]))
+
+      # Distance
+      flights_filtered <- flights_filtered |>
+        dplyr::filter(distance_via_turnpoints >= input$ui_select_distance)
 
       # Pilot
       if(!is.null(input$ui_select_pilot)){
@@ -108,27 +116,31 @@ flightsMapServer <- function(id) {
 
     # Controls
     output$select_dates <- shiny::renderUI({
-      shiny::dateRangeInput(ns("ui_select_dates"), "Dates", start = lubridate::floor_date(max(flights_sf$flight_date), 'year') - lubridate::years(1), end = max(flights_sf$flight_date), min = min(flights_sf$flight_date), max = max(flights_sf$flight_date))
+      shiny::sliderInput(ns("ui_select_dates"), "Date Range", value = c(lubridate::floor_date(max(as.Date(flights_sf$flight_date)), 'year') - lubridate::years(1), max(as.Date(flights_sf$flight_date))), min = min(as.Date(flights_sf$flight_date)), max = max(as.Date(flights_sf$flight_date)))
+    })
+
+    output$select_distance <- shiny::renderUI({
+      shiny::sliderInput(ns("ui_select_distance"), "Minimum Distance", value = 0, min = 0, max = max(flights_sf$distance_via_turnpoints, na.rm = TRUE))
     })
 
     output$select_site <- shiny::renderUI({
-      shiny::selectInput(ns("ui_select_site"), "Takeoff Site", unique(flights_sf$takeoff_name), multiple = TRUE)
+      shiny::selectInput(ns("ui_select_site"), "Takeoff Site", sort(unique(flights_sf$takeoff_name)), multiple = TRUE)
     })
 
     output$select_en <- shiny::renderUI({
-      shiny::selectInput(ns("ui_select_en"), "EN Rating",  unique(flights_sf$en_rating), multiple = TRUE)
+      shiny::selectInput(ns("ui_select_en"), "EN Rating",  sort(unique(flights_sf$en_rating)), multiple = TRUE)
     })
 
     output$select_pilot <- shiny::renderUI({
-      shiny::selectInput(ns("ui_select_pilot"), "Pilot",  unique(flights_sf$pilot_name), multiple = TRUE, selectize = TRUE)
+      shiny::selectInput(ns("ui_select_pilot"), "Pilot",  sort(unique(flights_sf$pilot_name)), multiple = TRUE, selectize = TRUE)
     })
 
     output$select_wing <- shiny::renderUI({
-      shiny::selectInput(ns("ui_select_wing"), "Wing", unique(flights_sf$glider_name), multiple = TRUE)
+      shiny::selectInput(ns("ui_select_wing"), "Wing", sort(unique(flights_sf$glider_name)), multiple = TRUE)
     })
 
     output$select_flight_type <- shiny::renderUI({
-      shiny::selectInput(ns("ui_select_flight_type"), "Flight Type", unique(flights_sf$flight_type), multiple = TRUE)
+      shiny::selectInput(ns("ui_select_flight_type"), "Flight Type", sort(unique(flights_sf$flight_type)), multiple = TRUE)
     })
 
     output$filter_warning <- shiny::renderText({
@@ -139,9 +151,6 @@ flightsMapServer <- function(id) {
         return("")
       }
     })
-
-
-
 
   })
 }
